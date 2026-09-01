@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Write(stages/2_drafts/**)",
+      "Exec(python3 -m pipeline.helpers.count_lines)",
+      "Read(**)"
+    ],
+    "deny": [
+      "Write(.env*)",
+      "Write(.git/**)",
+      "Write(_config/**)",
+      "Write(.devin/**)",
+      "Write(.devin.example/**)",
+      "Write(pipeline/**)",
+      "Write(tests/**)",
+      "Write(docs/**)",
+      "Write(util/**)",
+      "Write(stages/1_listings/**)",
+      "Write(stages/4_ready/**)",
+      "Write(stages/6_rejected/**)",
+      "Write(stages/7_trash/**)",
+      "Write(stages/3_in-progress/**)",
+      "Write(stages/5_submitted/**)",
+      "Write(.grades.log)",
+      "Write(.grading/**)",
+      "Write(.veracity/**)",
+      "Read(~/.ssh/**)",
+      "Read(.env*)"
+    ]
+  }
+}

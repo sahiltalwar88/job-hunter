@@ -1,0 +1,50 @@
+# Gitleaks configuration — custom rules for job-hunter.
+# Extends the default gitleaks rules with project-specific patterns.
+# See https://github.com/gitleaks/gitleaks for full documentation.
+
+[extend]
+useDefault = true
+
+# ─── Custom rules ──────────────────────────────────────────────────────────
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-[a-zA-Z0-9]{40,}'''
+tags = ["key", "openai"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[a-zA-Z0-9-_]{50,}'''
+tags = ["key", "anthropic"]
+
+[[rules]]
+id = "pushover-token"
+description = "Pushover API token or user key"
+regex = '''["']?(?:PUSHOVER_TOKEN|PUSHOVER_USER)["']?\s*[=:]\s*["']?[a-zA-Z0-9]{25,35}["']?'''
+tags = ["key", "pushover"]
+
+[[rules]]
+id = "devin-api-key"
+description = "Devin API key"
+regex = '''devin-[a-zA-Z0-9]{30,}'''
+tags = ["key", "devin"]
+
+# ─── Allowlist ─────────────────────────────────────────────────────────────
+
+[allowlist]
+description = "Allowed paths and patterns"
+paths = [
+    '''docs/adr/.*\.md''',          # ADRs may reference key patterns in examples
+    '''\.gitleaks\.toml''',          # This file itself contains regex patterns
+    '''tests/.*\.py''',              # Test files may contain fake/example secrets
+]
+
+# Example secrets in documentation are fine
+regexes = [
+    '''example[_-]?(?:token|key|secret)''',
+    '''your[_-]?(?:token|key|secret)''',
+    '''<your[_-]?(?:token|key|secret)>''',
+    '''PUSHOVER_TOKEN.*#.*template''',
+]

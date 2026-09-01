@@ -1,0 +1,57 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# pytest tmp_path dirs (redirected from /tmp via --basetemp in .vscode/settings.json)
+.pytest_tmp/
+
+# Transient pipeline artifacts
+.grading/
+.veracity/
+
+# Local run logs
+logs/
+
+# Audit trail — tracked despite global *.log gitignore
+!.grades.log
+
+# Devin CLI runtime state (copy from .devin.example/)
+.devin/
+
+# SQLite databases (regenerable)
+data/*.db
+
+# User data — pipeline creates content at runtime
+# Synthetic samples are force-added via .gitignore exceptions
+stages/1_listings/*
+!stages/1_listings/.gitkeep
+!stages/1_listings/shinra-electric-power-company-director-of-cloud-infrastructure/
+!stages/1_listings/lindblum-technologies-senior-engineering-manager-platform/
+!stages/1_listings/al-bhed-machina-vp-of-engineering/
+
+stages/2_drafts/*
+!stages/2_drafts/.gitkeep
+
+stages/4_ready/*
+!stages/4_ready/.gitkeep
+
+stages/6_rejected/*
+!stages/6_rejected/.gitkeep
+
+stages/7_trash/*
+!stages/7_trash/.gitkeep
+
+stages/3_in-progress/*
+!stages/3_in-progress/.gitkeep
+
+stages/5_submitted/*
+!stages/5_submitted/.gitkeep
+
+# User config — copy from config.example.json
+config.json
+
+# Scoring profile (if using AI triage)
+scoring_profile.json
+
+# Devin session state (runtime)
+.devin/session-state/

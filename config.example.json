@@ -1,0 +1,33 @@
+{
+  "_README": "ONE config file drives the whole pipeline. Copy this to config.json (gitignored) and edit it. Every field has a default — only override what you need to change. See docs/CONFIG_GUIDE.md for field-by-field documentation.",
+
+  "candidate_name": "Squall Leonhart",
+
+  "models": {
+    "customizer": "customizer-model",
+    "grader": "grader-model",
+    "truthfulness": "grader-model"
+  },
+
+  "scraper_transport": "filesystem",
+  "scraper_repo_path": "/path/to/job-scraper",
+  "scraper_url": "",
+
+  "feasibility_prompt": "A job is PREFERRED if it is a senior engineering leadership role (Senior Manager, Sr. Manager, Director, VP, Head of, Senior Director) at a well-known tech company where the work involves building/managing software products or platforms at scale. A job is YES if it is a senior engineering leadership role at a legitimate software, internet, platform, or AI/ML company where the work involves building/managing software products or platforms. A job is NO if it is: a non-software leadership role, an IC role without people-leadership, a junior/mid-level role, or in a non-tech industry. Customize this prompt to match your target roles and companies.",
+
+  "few_shot_examples": [
+    "Squall - Acme Corp Director of Engineering.md",
+    "Squall - TechFlow Senior Engineering Manager.md",
+    "Squall - Globex VP of Engineering.md",
+    "Squall - Initech Staff Engineering Manager.md"
+  ],
+
+  "max_optimization_iterations": 3,
+  "jd_grade_threshold": 8,
+  "resume_grade_threshold": 9,
+  "llm_timeout_seconds": 120,
+  "llm_retries": 2,
+  "llm_retry_delay": 5,
+  "notifications_enabled": true,
+  "git_push": true
+}

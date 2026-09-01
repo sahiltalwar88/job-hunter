@@ -1,0 +1,21 @@
+# Job Hunter Pipeline — Python dependencies
+#
+# Pinned ranges. Upper bounds prevent unexpected breaking changes from
+# major version bumps. Lower bounds are the versions we built against.
+
+# ─── Pipeline engine ──────────────────────────────────────────────────────
+langgraph>=1.2.11,<2          # stateful graph engine (ADR-0005)
+langgraph-checkpoint-sqlite>=3.1.1,<4  # SqliteSaver checkpointer (ADR-0005)
+# langgraph pulls transitively:
+#   langchain-core>=1.4.7,<2
+#   langgraph-checkpoint>=4.1.0,<5
+#   langgraph-prebuilt>=1.1.0,<1.2
+#   langgraph-sdk>=0.4.2,<0.5
+#   pydantic>=2.7.4                            # (ADR-0006 — pinned explicitly below)
+#   xxhash>=3.5.0
+
+# ─── State schema ──────────────────────────────────────────────────────────
+pydantic>=2.7.4,<3            # validation at the LLM-JSON boundary (ADR-0006)
+
+# ─── Existing implicit deps (made explicit) ────────────────────────────────
+# These were already used by the pipeline but not declared anywhere.

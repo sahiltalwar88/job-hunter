@@ -1,0 +1,60 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "^(exec|edit|write)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$DEVIN_PROJECT_DIR/util/hooks/block_score_tamper.py\"",
+          "timeout": 5
+        }
+      ]
+    },
+    {
+      "matcher": "^exec$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$DEVIN_PROJECT_DIR/util/hooks/restrict_exec.py\"",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "^(exec|edit|write)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$DEVIN_PROJECT_DIR/util/hooks/audit_log.py\"",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$DEVIN_PROJECT_DIR/util/hooks/session_start.py\"",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$DEVIN_PROJECT_DIR/util/hooks/block_failing_grade.py\"",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}
