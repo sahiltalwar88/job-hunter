@@ -15,7 +15,7 @@ langgraph-checkpoint-sqlite>=3.1.1,<4  # SqliteSaver checkpointer (ADR-0005)
 #   xxhash>=3.5.0
 
 # ─── State schema ──────────────────────────────────────────────────────────
-pydantic>=2.7.4,<3            # validation at the LLM-JSON boundary (ADR-0006)
+pydantic>=2.13.5,<3            # validation at the LLM-JSON boundary (ADR-0006)
 
 # ─── Existing implicit deps (made explicit) ────────────────────────────────
 # These were already used by the pipeline but not declared anywhere.
