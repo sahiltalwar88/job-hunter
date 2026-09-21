@@ -24,4 +24,4 @@ structlog>=24.1,<25         # structured logging with bind() for slug/node corre
 # These were already used by the pipeline but not declared anywhere.
 
 # ─── PDF text extraction (grade_resume helper) ──────────────────────────────
-pymupdf>=1.24,<2              # PDF→text for the grade-only command (pipeline/helpers/grade_resume.py)
+pymupdf>=1.28.2,<2              # PDF→text for the grade-only command (pipeline/helpers/grade_resume.py)
