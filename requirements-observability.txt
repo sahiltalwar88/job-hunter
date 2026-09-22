@@ -4,5 +4,5 @@
 # The pipeline runs fine without these — tracing is a no-op when
 # arize-phoenix is not importable or PHOENIX_HOST is unset.
 
-arize-phoenix>=4.0,<5              # local observability UI (ELv2 server, Apache 2.0 client)
+arize-phoenix>=20.14.0,<21              # local observability UI (ELv2 server, Apache 2.0 client)
 openinference-instrumentation-langchain>=0.1.76,<1  # auto-instrument LangGraph nodes + LLM calls
