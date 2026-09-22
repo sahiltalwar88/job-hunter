@@ -79,7 +79,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** The control plane: prep phase (feasibility, fetch, discover) runs as plain functions, then a per-job LangGraph StateGraph handles ingest, grading, customization, optimization loops, truthfulness, and routing. Each job runs as a separate graph invocation with SqliteSaver checkpointing for resumability. It invokes LLMs for cognitive tasks and handles all plumbing itself.
 
-**How it's built.** `pipeline/__main__.py` + `pipeline/` package. Acquires a file lock, loads config from `config.json`, runs prep functions, invokes the per-job graph for each new job. Graph nodes call `devin -p` for LLM work via `pipeline/infrastructure/devin_cli.py` (wrapped by `pipeline/infrastructure/llm_interface.py`). Commits and pushes at the end.
+**How it's built.** `pipeline/__main__.py` + `pipeline/` package. Acquires a file lock, loads config from `config.json`, runs prep functions, invokes the per-job graph for each new job. Graph nodes use the configured Devin, Codex, or Claude CLI adapter through `pipeline/infrastructure/llm_interface.py`. Commits and pushes at the end.
 
 **Steps in execution.**
 
@@ -115,7 +115,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** An LLM that receives job metadata (title, company, location) and returns a tripartite verdict: "preferred" (Big Tech / top-tier fit), "yes" (fits but not Big Tech), or "no" (doesn't fit).
 
-**How it's built.** `pipeline/infrastructure/feasibility_checker.py` (ported from scraper). Uses `DevinCLIChecker` with customizer-model via `llm.py`. Prompt in `config.json` → `feasibility_prompt`. Verdicts stored in the sidecar.
+**How it's built.** `pipeline/infrastructure/feasibility_checker.py` (ported from scraper). Uses `LLMFeasibilityChecker` with the configured provider and customizer model. Prompt in `config.json` → `feasibility_prompt`. Verdicts stored in the sidecar.
 
 **Steps in execution.**
 
@@ -215,7 +215,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** Receives JD text, reads the base resume and full career history, and returns a grade (0-10) with justification. The orchestrator parses the text output and does the rename/triage.
 
-**How it's built.** customizer-model via `devin -p`. Prompt: `build_jd_grading_prompt()` in `pipeline/step4_grade_jd.py`. Outputs `GRADE: N\nJUSTIFICATION: ...` or `CLEARANCE` to stdout. Code parses and renames.
+**How it's built.** customizer-model via the configured LLM CLI. Prompt: `build_jd_grading_prompt()` in `pipeline/step4_grade_jd.py`. Outputs `GRADE: N\nJUSTIFICATION: ...` or `CLEARANCE` to stdout. Code parses and renames.
 
 **Steps in execution.**
 
@@ -268,7 +268,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** The orchestrator pre-copies a starting draft to `stages/2_drafts/<slug>/[TBD] resume-vN.md` — the base resume for v1, the previous version for v2+. The customizer edits it in place — pulling relevant experience from LinkedIn, rephrasing, condensing, reordering. Self-measures with count_lines and self-trims if over 75 rendered lines. One agent handles both first drafts and revisions (a revision carries grader + veracity feedback), and ends every call with a YES/NO on whether further truthful improvement is possible — the loop's stopping signal (ADR-0018). The JD grade is passed to the first customization prompt.
 
-**How it's built.** customizer-model via `devin -p` (automated) or custom subagent profile `util/agent-profiles/customizer.md` (debug). Prompt: `build_customize_prompt()`. Follows the customization protocol strictly. Runs `count_lines` via exec for self-measurement.
+**How it's built.** customizer-model via the configured LLM CLI (automated) or custom subagent profile `util/agent-profiles/customizer.md` (Devin debug mode). Prompt: `build_customize_prompt()`. Follows the customization protocol strictly. Runs `count_lines` via exec for self-measurement.
 
 **Steps in execution.**
 
@@ -315,7 +315,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** Reads the grading protocol, resume, and JD. Grades in a single pass, writes JSON to .grading/, renames the resume file from [TBD] to [score], and appends to .grades.log. Be realistically harsh — as harsh as a recruiter taking 30 seconds to skim.
 
-**How it's built.** grader-model via `devin -p` (automated) or `util/agent-profiles/resume-grader.md` (debug). Prompt: `build_resume_grading_prompt()`. Protocol: `_config/grading-protocol.md`. Uses `mv` to rename and `echo >> .grades.log` to append.
+**How it's built.** grader-model via the configured LLM CLI (automated) or `util/agent-profiles/resume-grader.md` (Devin debug mode). Prompt: `build_resume_grading_prompt()`. Protocol: `_config/grading-protocol.md`. Uses `mv` to rename and `echo >> .grades.log` to append.
 
 **Steps in execution.**
 
@@ -343,7 +343,7 @@ An AI agent workspace that automates job applications: pulls listings from a job
 
 **What it does.** Reads the veracity protocol, customized resume, base resume, and full career history. Classifies every claim into one of 4 buckets. If all claims verified → replies VERIFIED. If not → replies UNVERIFIED with specific claims to fix. Runs twice per version lifecycle (ADR-0018): inside the customize loop on every version grading ≥ 9 (a failed review forces a repair revision while budget remains), and once more after the loop as the final gate on the selected version — with fallback to the next-best passing candidate if it fails.
 
-**How it's built.** grader-model via `devin -p` (automated) or `util/agent-profiles/truthfulness-reviewer.md` (debug). Protocol: `_config/veracity-protocol.md`. Writes JSON to `.veracity/<slug>/verification.json`.
+**How it's built.** grader-model via the configured LLM CLI (automated) or `util/agent-profiles/truthfulness-reviewer.md` (Devin debug mode). Protocol: `_config/veracity-protocol.md`. Writes JSON to `.veracity/<slug>/verification.json`.
 
 **Steps in execution.**
 
@@ -509,7 +509,7 @@ Reference by ID. ✓ resolved (with date) · otherwise open.
 
 ## What the platform gives vs what we own
 
-**Platform gives:** Devin CLI (<code>devin -p</code>) for LLM invocation in non-interactive mode. Custom subagent profiles for debug mode. PreToolUse/Stop hooks for integrity enforcement. Systemd user timers for scheduling.
+**Platform gives:** A configured Devin, Codex, or Claude CLI for non-interactive LLM invocation. Devin custom subagent profiles and hooks for debug mode. Systemd user timers for scheduling.
 
 **We own:** The orchestrator (<code>pipeline/__main__.py</code> + <code>pipeline/</code> package), all pipeline scripts, the enrichment sidecar, the customizer/grader/truthfulness prompts and profiles, the hooks, and all documentation.
 

@@ -47,7 +47,7 @@ The pipeline is fully automated by `python3 -m pipeline` (`pipeline/__main__.py`
 - **Checkpointer** (`SqliteSaver` at `data/jobs.db`) provides per-job resumability — an interrupted hourly run resumes from the last checkpoint.
 - **Clearance detection is LLM-only** (ADR-0007) — no regex filter. The JD grading prompt returns `CLEARANCE` instead of a grade if the job requires clearance.
 - **Optimize loop terminates** via grade + gaps + iteration count + LLM "can you improve?" check (ADR-0009).
-- **Invokes `devin -p`** for LLM work via `pipeline/infrastructure/devin_cli.py` (wrapped by `pipeline/infrastructure/llm_interface.py:RealLLM`). Users without the Devin CLI implement the `LLM` protocol (see `pipeline/infrastructure/llm_interface.py`).
+- **Invokes a configured LLM CLI** (`devin -p`, `codex exec`, or `claude -p`) via provider adapters wrapped by `pipeline/infrastructure/llm_interface.py:RealLLM`. Select it with `config.json` → `llm_provider`; `--llm-provider` overrides it for one run.
 - **Writes transient output** to `.grading/<slug>/` and `.veracity/<slug>/` (gitignored, cleaned after processing).
 - **Appends every grade** to `.grades.log` (tracked, append-only audit trail).
 - **Saves state** to `.devin/pipeline-state.json` (gitignored) — tracks last scraper SHA and run metadata.

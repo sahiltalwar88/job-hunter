@@ -18,7 +18,7 @@ export const META = {
   onePara: `An AI agent workspace that automates job applications: pulls listings from a job scraper, grades them against a candidate profile, customizes resumes through an iterative grade-and-improve loop, and parks passing resumes for manual application. A LangGraph StateGraph orchestrates the per-job pipeline; LLMs handle 5 cognitive tasks. Hourly via systemd.`,
   costModel: [],
   deepDive: '',
-  platformGives: 'Devin CLI (<code>devin -p</code>) for LLM invocation in non-interactive mode. Custom subagent profiles for debug mode. PreToolUse/Stop hooks for integrity enforcement. Systemd user timers for scheduling.',
+  platformGives: 'A configured Devin, Codex, or Claude CLI for non-interactive LLM invocation. Devin custom subagent profiles and hooks for debug mode. Systemd user timers for scheduling.',
   weOwn: 'The orchestrator (<code>pipeline/__main__.py</code> + <code>pipeline/</code> package), all pipeline scripts, the enrichment sidecar, the customizer/grader/truthfulness prompts and profiles, the hooks, and all documentation.',
   filesystem: `job-hunter/
   pipeline/           # pipeline package (infrastructure, steps, helpers)
@@ -82,7 +82,7 @@ export const NODES = [
   { id: 'OR', code: 'OR', name: 'Orchestrator', short: 'ORCHESTRATOR', group: 'prep', gx: 4, gy: 1, w: 3, d: 3, h: 72, kind: 'tall',
     one: 'The brain — a LangGraph StateGraph that runs the per-job pipeline, with a plain-function prep phase.',
     what: 'The control plane: prep phase (feasibility, fetch, discover) runs as plain functions, then a per-job LangGraph StateGraph handles ingest, grading, customization, optimization loops, truthfulness, and routing. Each job runs as a separate graph invocation with SqliteSaver checkpointing for resumability. It invokes LLMs for cognitive tasks and handles all plumbing itself.',
-    how: '<code>pipeline/__main__.py</code> + <code>pipeline/</code> package. Acquires a file lock, loads config from <code>config.json</code>, runs prep functions, invokes the per-job graph for each new job. Graph nodes call <code>devin -p</code> for LLM work via <code>pipeline/infrastructure/devin_cli.py</code> (wrapped by <code>pipeline/infrastructure/llm_interface.py</code>). Commits and pushes at the end.',
+    how: '<code>pipeline/__main__.py</code> + <code>pipeline/</code> package. Acquires a file lock, loads config from <code>config.json</code>, runs prep functions, invokes the per-job graph for each new job. Graph nodes use the configured Devin, Codex, or Claude CLI adapter through <code>pipeline/infrastructure/llm_interface.py</code>. Commits and pushes at the end.',
     steps: [['Lock', 'Acquire <code>.devin/pipeline.lock</code> to prevent concurrent runs.'], ['Config', 'Load thresholds, timeouts, model names from config.json.'], ['Prep 1-2', 'Feasibility check + fetch JDs (plain functions).'], ['Prep 3', 'Discover + dedup new jobs (plain function).'], ['Per-job graph', 'For each new job: ingest → grade JD → triage → [customize → grade resume → veracity → should_continue] loop → final veracity gate → finalize → stages/4_ready/stages/6_rejected.'], ['Checkpoint', 'SqliteSaver at <code>data/jobs.db</code> — interrupted runs resume per job.'], ['Finish', 'Commit, push, notify, release lock.']],
     cond: [
       { q: 'Should optimization iterations run in parallel for multiple jobs?', r: 'No — sequential is safer and cost is bounded by max_optimization_iterations (2026-08-24).' },
@@ -98,7 +98,7 @@ export const NODES = [
   { id: 'FC', code: 'FC', name: 'Feasibility Checker', short: 'FEASIBILITY', group: 'prep', gx: 5, gy: 5, w: 2, d: 2, h: 20, kind: 'cards',
     one: 'LLM task 1 — tags each job as preferred, yes, or no.',
     what: 'An LLM that receives job metadata (title, company, location) and returns a tripartite verdict: "preferred" (Big Tech / top-tier fit), "yes" (fits but not Big Tech), or "no" (doesn\'t fit).',
-    how: '<code>pipeline/infrastructure/feasibility_checker.py</code> (ported from scraper). Uses <code>DevinCLIChecker</code> with customizer-model via <code>llm.py</code>. Prompt in <code>config.json</code> → <code>feasibility_prompt</code>. Verdicts stored in the sidecar.',
+    how: '<code>pipeline/infrastructure/feasibility_checker.py</code> (ported from scraper). Uses <code>LLMFeasibilityChecker</code> with the configured provider and customizer model. Prompt in <code>config.json</code> → <code>feasibility_prompt</code>. Verdicts stored in the sidecar.',
     steps: [['Batch', 'Load unchecked jobs from sidecar.'], ['Call LLM', 'Send job metadata to customizer-model in batches.'], ['Parse', 'Extract tier verdict (preferred/yes/no).'], ['Store', 'Write feasible + feasibility fields to sidecar.']],
     cond: [] },
 
@@ -152,7 +152,7 @@ export const NODES = [
   { id: 'JG', code: 'JG', name: 'JD Grader', short: 'JD GRADER', group: 'grade', gx: 12, gy: 3, w: 2, d: 2, h: 20, kind: 'cards',
     one: 'LLM task 2 — grades a JD against the candidate profile.',
     what: 'Receives JD text, reads the base resume and full career history, and returns a grade (0-10) with justification. The orchestrator parses the text output and does the rename/triage.',
-    how: 'customizer-model via <code>devin -p</code>. Prompt: <code>build_jd_grading_prompt()</code> in <code>pipeline/step4_grade_jd.py</code>. Outputs <code>GRADE: N\\nJUSTIFICATION: ...</code> or <code>CLEARANCE</code> to stdout. Code parses and renames.',
+    how: 'customizer-model via the configured LLM CLI. Prompt: <code>build_jd_grading_prompt()</code> in <code>pipeline/step4_grade_jd.py</code>. Outputs <code>GRADE: N\\nJUSTIFICATION: ...</code> or <code>CLEARANCE</code> to stdout. Code parses and renames.',
     steps: [['Read profile', 'Read base resume + full career history.'], ['Grade', 'Assess fit: experience match, realistic obtainability, gap analysis.'], ['Output', 'Return GRADE: N + JUSTIFICATION to stdout.']],
     cond: [] },
 
@@ -182,7 +182,7 @@ export const NODES = [
   { id: 'CU', code: 'CU', name: 'Customizer', short: 'CUSTOMIZER', group: 'custom', gx: 17, gy: 3, w: 2, d: 2, h: 20, kind: 'cards',
     one: 'LLM task 3 — edits a pre-copied resume from the reference pool to optimally match the JD.',
     what: 'The orchestrator pre-copies a starting draft to <code>stages/2_drafts/&lt;slug&gt;/[TBD] resume-vN.md</code> — the base resume for v1, the previous version for v2+. The customizer edits it in place — pulling relevant experience from LinkedIn, rephrasing, condensing, reordering. Self-measures with count_lines and self-trims if over 75 rendered lines. One agent handles both first drafts and revisions (a revision carries grader + veracity feedback), and ends every call with a YES/NO on whether further truthful improvement is possible — the loop\'s stopping signal (ADR-0018). The JD grade is passed to the first customization prompt.',
-    how: 'customizer-model via <code>devin -p</code> (automated) or custom subagent profile <code>util/agent-profiles/customizer.md</code> (debug). Prompt: <code>build_customize_prompt()</code>. Follows the customization protocol strictly. Runs <code>count_lines</code> via exec for self-measurement.',
+    how: 'customizer-model via the configured LLM CLI (automated) or custom subagent profile <code>util/agent-profiles/customizer.md</code> (Devin debug mode). Prompt: <code>build_customize_prompt()</code>. Follows the customization protocol strictly. Runs <code>count_lines</code> via exec for self-measurement.',
     steps: [['Read inputs', 'Pre-copied base resume + protocol + LinkedIn + JD + JD grade + few-shot examples.'], ['Customize', 'Edit the pre-copied resume in place. Draw from the reference pool to optimally match the JD. Rephrase, condense, reorder, pull — all valid.'], ['Self-measure', 'Run <code>python3 -m pipeline.helpers.count_lines --json</code> on the output.'], ['Self-trim', 'If &gt; 75 rendered lines, trim least JD-relevant bullets. Up to 3 passes.']],
     cond: [
       { q: 'What happens if count_lines reports >75 after 3 trim passes?', r: 'Accept and proceed — the grader is the quality gate, not the line count (2026-08-24).' },
@@ -206,7 +206,7 @@ export const NODES = [
   { id: 'RG', code: 'RG', name: 'Resume Grader', short: 'RES GRADER', group: 'gates', gx: 20, gy: 3, w: 2, d: 2, h: 20, kind: 'cards',
     one: 'LLM task 4 — grades a customized resume against the JD with realistic recruiter framing.',
     what: 'Reads the grading protocol, resume, and JD. Grades in a single pass, writes JSON to .grading/, renames the resume file from [TBD] to [score], and appends to .grades.log. Be realistically harsh — as harsh as a recruiter taking 30 seconds to skim.',
-    how: 'grader-model via <code>devin -p</code> (automated) or <code>util/agent-profiles/resume-grader.md</code> (debug). Prompt: <code>build_resume_grading_prompt()</code>. Protocol: <code>_config/grading-protocol.md</code>. Uses <code>mv</code> to rename and <code>echo >> .grades.log</code> to append.',
+    how: 'grader-model via the configured LLM CLI (automated) or <code>util/agent-profiles/resume-grader.md</code> (Devin debug mode). Prompt: <code>build_resume_grading_prompt()</code>. Protocol: <code>_config/grading-protocol.md</code>. Uses <code>mv</code> to rename and <code>echo >> .grades.log</code> to append.',
     steps: [['Read protocol', 'Load grading rubric from <code>_config/grading-protocol.md</code>.'], ['Read resume + JD', 'Load the customized resume and the job description.'], ['Grade', 'Single pass: extract requirements → assign verdicts → compute score.'], ['Write JSON', 'Write grade to <code>.grading/&lt;slug&gt;/grade-vN.json</code>.'], ['Rename', '<code>mv [TBD] resume-vN.md [score] resume-vN.md</code>'], ['Log', '<code>echo "..." >> .grades.log</code>']],
     cond: [] },
 
@@ -220,7 +220,7 @@ export const NODES = [
   { id: 'TV', code: 'TV', name: 'Truthfulness Reviewer', short: 'VERACITY', group: 'gates', gx: 20, gy: 7, w: 2, d: 2, h: 20, kind: 'cards',
     one: 'LLM task 5 — verifies every resume claim against the base resume and LinkedIn.',
     what: 'Reads the veracity protocol, customized resume, base resume, and full career history. Classifies every claim into one of 4 buckets. If all claims verified → replies VERIFIED. If not → replies UNVERIFIED with specific claims to fix. Runs twice per version lifecycle (ADR-0018): inside the customize loop on every version grading ≥ 9 (a failed review forces a repair revision while budget remains), and once more after the loop as the final gate on the selected version — with fallback to the next-best passing candidate if it fails.',
-    how: 'grader-model via <code>devin -p</code> (automated) or <code>util/agent-profiles/truthfulness-reviewer.md</code> (debug). Protocol: <code>_config/veracity-protocol.md</code>. Writes JSON to <code>.veracity/&lt;slug&gt;/verification.json</code>.',
+    how: 'grader-model via the configured LLM CLI (automated) or <code>util/agent-profiles/truthfulness-reviewer.md</code> (Devin debug mode). Protocol: <code>_config/veracity-protocol.md</code>. Writes JSON to <code>.veracity/&lt;slug&gt;/verification.json</code>.',
     steps: [['Read protocol', 'Load veracity protocol from <code>_config/veracity-protocol.md</code>.'], ['Read resume', 'Load the customized resume.'], ['Read sources', 'Load base resume + full career history.'], ['Classify', 'Per-claim: verified in base, verified in LinkedIn, partial, or unverified.'], ['Synthesize', 'All verified → VERIFIED. Any unverified → UNVERIFIED + list.'], ['Write JSON', 'Write result to <code>.veracity/&lt;slug&gt;/verification.json</code>']],
     cond: [] },
 
@@ -378,7 +378,7 @@ export const CH = [
 
 export const HOW_HTML = `<div class="eyebrow">job-hunter · v1</div><h1 class="t">How it's built</h1><div class="sub">the shape and what sits around it</div>
 <h3 class="sec">Architecture</h3>
-<p>Code orchestrates, LLMs cognate. <code>pipeline/__main__.py</code> + the <code>pipeline/</code> package handle all plumbing (file I/O, HTTP fetching, state management, routing) via Python. A LangGraph StateGraph runs the per-job pipeline with conditional edges and a customize-grade-veracity cycle. LLM agents are invoked via <code>devin -p</code> for 5 cognitive tasks only: feasibility checking, JD grading, resume customization, resume grading, and truthfulness verification.</p>
+<p>Code orchestrates, LLMs cognate. <code>pipeline/__main__.py</code> + the <code>pipeline/</code> package handle all plumbing (file I/O, HTTP fetching, state management, routing) via Python. A LangGraph StateGraph runs the per-job pipeline with conditional edges and a customize-grade-veracity cycle. LLM agents are invoked through the configured Devin, Codex, or Claude CLI for 5 cognitive tasks only: feasibility checking, JD grading, resume customization, resume grading, and truthfulness verification.</p>
 <h3 class="sec">Filesystem</h3>
 <pre>job-hunter/
   pipeline/           # pipeline package (infrastructure, steps, helpers)

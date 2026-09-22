@@ -41,7 +41,7 @@ job-hunter/
 │   │   ├── paths.py             #   Frozen Paths dataclass with all workspace paths.
 │   │   ├── config.py            #   Pydantic PipelineConfig + load_config().
 │   │   ├── state.py             #   Pydantic JobState + sub-models + enums + free functions.
-│   │   ├── llm_interface.py     #   LLM Protocol + RealLLM + FakeLLM + NodeDeps (DI).
+│   │   ├── llm_interface.py     #   LLM Protocol + provider-dispatching RealLLM + FakeLLM + NodeDeps.
 │   │   ├── file_ops.py          #   rename_with_grade, move_dir, company_role_slug, URL dedup.
 │   │   ├── lifecycle.py         #   lock, git commit/push, scraper sync, logging, cleanup.
 │   │   ├── graph.py             #   LangGraph builder: nodes, edges, conditional routing.
@@ -53,6 +53,9 @@ job-hunter/
 │   │   ├── enrichment_store.py  #   SQLite job store (scraper mirror + enrichments).
 │   │   ├── delta_sync.py        #   Incremental scraper sync via delta files.
 │   │   ├── devin_cli.py         #   LLM wrapper for `devin -p`. Reference implementation.
+│   │   ├── codex_cli.py         #   LLM wrapper for non-interactive `codex exec`.
+│   │   ├── claude_cli.py        #   LLM wrapper for non-interactive `claude -p`.
+│   │   ├── llm_error.py         #   Shared provider subprocess error type.
 │   │   ├── feasibility_checker.py # LLM-based feasibility checker.
 │   │   ├── notify.py            #   Pushover notification adapter. No-ops without creds.
 │   │   └── tests/               #   Co-located tests for infrastructure modules.

@@ -39,6 +39,37 @@ def test_real_llm_is_callable():
     assert callable(real)
 
 
+@pytest.mark.parametrize("provider", ["codex", "claude"])
+def test_real_llm_dispatches_to_configured_provider(monkeypatch, provider):
+    captured = {}
+
+    def fake_call_llm_safe(prompt, **kwargs):
+        captured["prompt"] = prompt
+        captured.update(kwargs)
+        return f"{provider} output", None
+
+    import sys
+    import types
+
+    module_name = f"pipeline.infrastructure.{provider}_cli"
+    fake_module = types.ModuleType(module_name)
+    fake_module.call_llm_safe = fake_call_llm_safe
+    monkeypatch.setitem(sys.modules, module_name, fake_module)
+
+    output, error = RealLLM(provider=provider)(
+        "test prompt", model="default", timeout=1, workspace="."
+    )
+
+    assert output == f"{provider} output"
+    assert error is None
+    assert captured["prompt"] == "test prompt"
+
+
+def test_real_llm_rejects_unknown_provider():
+    with pytest.raises(ValueError, match="Unsupported LLM provider"):
+        RealLLM(provider="other")
+
+
 # ─── permission_mode pass-through (ADR-0010) ────────────────────────────────
 
 

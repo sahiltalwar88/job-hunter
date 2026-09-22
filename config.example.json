@@ -1,6 +1,7 @@
 {
   "_README": "ONE config file drives the whole pipeline. Copy this to config.json (gitignored) and edit it. Every field has a default \u2014 only override what you need to change. See docs/CONFIG_GUIDE.md for field-by-field documentation.",
   "candidate_name": "Squall Leonhart",
+  "llm_provider": "devin",
   "models": {
     "customizer": "glm-5.2-high",
     "grader": "glm-5.2-high",
