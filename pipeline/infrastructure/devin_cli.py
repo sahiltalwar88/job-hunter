@@ -29,16 +29,7 @@ import structlog
 from pathlib import Path
 
 from pipeline.infrastructure.config import DEFAULT_LLM_MODEL
-
-
-class LLMError(Exception):
-    """Raised when a devin -p call fails (timeout, non-zero exit, empty output)."""
-
-    def __init__(self, message, *, stdout="", stderr="", returncode=None):
-        super().__init__(message)
-        self.stdout = stdout
-        self.stderr = stderr
-        self.returncode = returncode
+from pipeline.infrastructure.llm_error import LLMError
 
 
 def _find_devin():
@@ -133,7 +124,8 @@ def call_llm(prompt: str, *, model=DEFAULT_LLM_MODEL, timeout=120,
 
     Args:
         prompt: The prompt text to send to the model.
-        model: Model identifier (e.g. DEFAULT_LLM_MODEL).
+        model: Model identifier, or "default" to use Devin CLI's configured
+            account-default model.
         timeout: Maximum seconds to wait for the call to complete.
         workspace: Working directory for the devin -p call (default: cwd).
             The grader calls use workspace=.grading/ or .veracity/ respectively,
@@ -143,9 +135,9 @@ def call_llm(prompt: str, *, model=DEFAULT_LLM_MODEL, timeout=120,
         export_path: If set, passes --export <path> to devin -p. The conversation
             (including the agent's thoughts and tool calls) is written to this
             file after each turn. Useful for capturing output before a timeout kill.
-        permission_mode: Permission mode for devin -p (default "dangerous" for
-            backward compat). Use "normal" for read-only subagents (grader,
-            truthfulness reviewer — ADR-0010).
+        permission_mode: Provider-neutral permission mode (default "dangerous"
+            for backward compatibility). The legacy read-only value "normal"
+            is translated to Devin CLI's current "auto" mode.
         config_path: If set, passes --config <path> to devin -p. Used for scoped
             permission configs (e.g. customizer — ADR-0010).
         alive_check_seconds: If > 0, kill the process and retry if no stdout
@@ -179,15 +171,19 @@ def call_llm(prompt: str, *, model=DEFAULT_LLM_MODEL, timeout=120,
         with os.fdopen(tmp_fd, "w") as f:
             f.write(prompt)
 
+        devin_permission_mode = (
+            "auto" if permission_mode == "normal" else permission_mode
+        )
         cmd = [
             devin_bin,
             "-p",
-            "--model", model,
-            "--permission-mode", permission_mode,
+            "--permission-mode", devin_permission_mode,
             "--respect-workspace-trust", "false",
             "--prompt-file", tmp_path,
             "--export", str(effective_export),
         ]
+        if model and model != "default":
+            cmd.extend(["--model", model])
         if config_path:
             cmd.extend(["--config", str(config_path)])
 

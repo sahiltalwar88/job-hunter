@@ -27,5 +27,13 @@
       "Read(~/.ssh/**)",
       "Read(.env*)"
     ]
-  }
+  },
+  "version": 1,
+  "devin": {
+    "org_id": "org-f16280149f4a423598f4a41b21eafca6"
+  },
+  "shell": {
+    "setup_complete": true
+  },
+  "theme_mode": "dark"
 }

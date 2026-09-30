@@ -8,6 +8,7 @@ from pipeline.infrastructure.config import PipelineConfig, ModelConfig, ProfileC
 
 def test_default_config():
     config = PipelineConfig()
+    assert config.llm_provider == "devin"
     assert config.models.customizer == "glm-5.2-high"
     assert config.models.grader == "glm-5.2-high"
     assert config.max_optimization_iterations == 3
@@ -62,6 +63,7 @@ def test_load_config_from_real_file():
     if not paths.exists():
         pytest.skip("No pipeline-config.json in real workspace")
     config = load_config(paths)
+    assert isinstance(config, PipelineConfig)
     assert config.models.customizer == "glm-5.2-high"
     assert config.max_optimization_iterations == 3
 
@@ -89,3 +91,13 @@ def test_validation_rejects_negative_iterations():
 def test_dry_run_settable():
     config = PipelineConfig(dry_run=True)
     assert config.dry_run is True
+
+
+@pytest.mark.parametrize("provider", ["devin", "codex", "claude"])
+def test_supported_llm_providers(provider):
+    assert PipelineConfig(llm_provider=provider).llm_provider == provider
+
+
+def test_validation_rejects_unknown_llm_provider():
+    with pytest.raises(Exception):
+        PipelineConfig(llm_provider="other")

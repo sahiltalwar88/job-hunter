@@ -62,7 +62,7 @@ class FeasibilityChecker(abc.ABC):
         ...
 
 
-class DevinCLIChecker(FeasibilityChecker):
+class LLMFeasibilityChecker(FeasibilityChecker):
     """Uses the pipeline's LLM protocol for feasibility checks.
 
     Batches 10 jobs per call to minimize subprocess overhead. The LLM
@@ -164,3 +164,7 @@ class DevinCLIChecker(FeasibilityChecker):
             print(f"  ⚠️  Feasibility batch: {len(data)} entries but 0 valid verdicts.")
 
         return verdicts
+
+
+# Backward-compatible import for downstream callers.
+DevinCLIChecker = LLMFeasibilityChecker

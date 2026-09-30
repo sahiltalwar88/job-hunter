@@ -1,6 +1,6 @@
 """Step 1: Feasibility check (batch, plain function — not a graph node).
 
-Uses job-hunter's own DevinCLIChecker (ported from the scraper) to tag
+Uses job-hunter's own LLMFeasibilityChecker (ported from the scraper) to tag
 jobs with feasible: true/false + feasibility tier. Verdicts are stored
 in the enrichment sidecar (data/jobs.db), not in all_jobs.json.
 
@@ -33,11 +33,15 @@ def step1_feasibility(
     """
     logger.info("Step 1: Feasibility check")
     try:
-        from pipeline.infrastructure.feasibility_checker import DevinCLIChecker
+        from pipeline.infrastructure.feasibility_checker import LLMFeasibilityChecker
         from pipeline.infrastructure.llm_interface import RealLLM
 
         if llm is None:
-            llm = RealLLM(db_path=str(paths.jobs_db), export_dir=str(paths.exports))
+            llm = RealLLM(
+                db_path=str(paths.jobs_db),
+                export_dir=str(paths.exports),
+                provider=config.llm_provider,
+            )
 
         # Query all jobs from the DB mirror
         jobs = store.query_jobs(status="all")
@@ -56,7 +60,7 @@ def step1_feasibility(
         prompt = config.feasibility_prompt
         model = config.models.customizer
         timeout = config.timeout_for("feasibility")
-        checker = DevinCLIChecker(
+        checker = LLMFeasibilityChecker(
             llm=llm, model=model, prompt=prompt, timeout=timeout,
             workspace=str(paths.hunter_dir),
             retries=config.llm_retries,

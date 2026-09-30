@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv/
 
 # pytest tmp_path dirs (redirected from /tmp via --basetemp in .vscode/settings.json)
 .pytest_tmp/

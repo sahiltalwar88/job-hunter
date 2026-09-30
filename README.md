@@ -23,7 +23,7 @@ A companion **job-hunter skill** will also be released, providing a guided start
 ### Prerequisites
 
 - Python 3.11+
-- An LLM provider (the reference implementation uses the [Devin CLI](https://devin.ai); see [LLM Provider](#llm-provider) below)
+- A supported LLM CLI: [Devin](https://devin.ai), [Codex](https://developers.openai.com/codex/cli), or [Claude Code](https://code.claude.com/docs/en/cli-usage) (see [LLM Provider](#llm-provider) below)
 - A job scraper producing `all_jobs.json` (see [Scraper Integration](#scraper-integration) below)
 - Optional: [Pushover](https://pushover.net) account for notifications
 
@@ -39,6 +39,7 @@ A companion **job-hunter skill** will also be released, providing a guided start
 
 2. **Edit `config.json`:**
    - `candidate_name` — your name
+   - `llm_provider` — `"devin"`, `"codex"`, or `"claude"`
    - `models` — LLM model names for each task (customizer, grader, truthfulness)
    - `scraper_transport` — `"filesystem"` (default) or `"http"`
    - `scraper_repo_path` — path to your scraper repo (if filesystem)
@@ -83,11 +84,34 @@ systemctl --user enable job-hunter-pipeline.timer
 
 ## LLM Provider
 
-The pipeline uses an `LLM` protocol (defined in `pipeline/infrastructure/llm_interface.py`) as its effect boundary. The reference implementation wraps the [Devin CLI](https://devin.ai) (`pipeline/infrastructure/devin_cli.py` → `RealLLM`).
+The pipeline uses an `LLM` protocol (defined in `pipeline/infrastructure/llm_interface.py`) as its effect boundary. `RealLLM` dispatches each call to the CLI selected by `config.json` → `llm_provider`:
 
-**Using Devin CLI:** Install it, and the pipeline works out of the box. Configure model names in `config.json` → `models`.
+| Provider | Config value | Non-interactive command | Permissions |
+|----------|--------------|-------------------------|-------------|
+| [Devin CLI](https://devin.ai) | `"devin"` (default) | `devin -p` | Existing Devin permission modes and customizer config |
+| [Codex CLI](https://developers.openai.com/codex/cli) | `"codex"` | `codex exec` | Read-only sandbox for analysis; workspace-write sandbox for customization |
+| [Claude Code](https://code.claude.com/docs/en/cli-usage) | `"claude"` | `claude -p` | Exact read/edit/count-line allowlists in `dontAsk` mode |
 
-**Using another LLM provider:** Implement the `LLM` protocol — a callable that takes a prompt string and returns a response string. See `pipeline/infrastructure/llm_interface.py` for the protocol definition and `FakeLLM` as a reference implementation. Point `RealLLM` at your adapter or replace it in the dependency injection.
+Install and authenticate the chosen CLI, set `llm_provider`, and set each entry under `models` to a model name that provider accepts. For any provider, use `"default"` to defer model selection to the CLI's own configuration:
+
+```json
+{
+  "llm_provider": "codex",
+  "models": {
+    "customizer": "default",
+    "grader": "default",
+    "truthfulness": "default"
+  }
+}
+```
+
+You can override the configured provider for one run without editing the file:
+
+```bash
+python3 -m pipeline --llm-provider claude --dry-run
+```
+
+To add another provider, implement the `LLM` protocol—a callable that takes a prompt string and returns an `(output, error)` tuple—and add its adapter to `RealLLM._PROVIDER_MODULES`. See `FakeLLM` for a minimal implementation.
 
 ## Scraper Integration
 
@@ -163,6 +187,7 @@ job-hunter/
 ├── pipeline/                 # Pipeline package (LangGraph-based)
 │   ├── __main__.py           #   Entry point: `python3 -m pipeline`
 │   ├── infrastructure/       #   Core modules (config, state, paths, graph, LLM, etc.)
+│   │   ├── *_cli.py           #   Devin, Codex, and Claude CLI adapters
 │   ├── steps/                #   Step nodes (step1 through step10)
 │   └── helpers/              #   Standalone CLI tools (count_lines, fetch_jds, grade_resume, etc.)
 ├── stages/                   # Workflow state directories (filesystem as state machine)
@@ -203,6 +228,7 @@ All configuration lives in `config.json` (gitignored, copy from `config.example.
 | Field | Default | Description |
 |-------|---------|-------------|
 | `candidate_name` | `"Squall Leonhart"` | Your name — used for PII scrubbing and prompts |
+| `llm_provider` | `"devin"` | CLI adapter: `"devin"`, `"codex"`, or `"claude"` |
 | `models.customizer` | `"customizer-model"` | LLM model for resume customization |
 | `models.grader` | `"grader-model"` | LLM model for resume grading |
 | `models.truthfulness` | `"grader-model"` | LLM model for truthfulness verification |

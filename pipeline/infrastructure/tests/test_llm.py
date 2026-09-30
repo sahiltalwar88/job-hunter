@@ -275,8 +275,8 @@ def test_call_llm_safe_catches_unexpected_exception():
 # ─── permission_mode tests (ADR-0010) ──────────────────────────────────────
 
 
-def test_call_llm_permission_mode_normal():
-    """call_llm should pass permission_mode='normal' to devin -p."""
+def test_call_llm_translates_permission_mode_normal_to_auto():
+    """call_llm should translate provider-neutral 'normal' to Devin 'auto'."""
     mock_result = MagicMock()
     mock_result.returncode = 0
     mock_result.stdout = "Result"
@@ -290,7 +290,7 @@ def test_call_llm_permission_mode_normal():
     cmd = mock_run.call_args[0][0]
     assert "--permission-mode" in cmd
     idx = cmd.index("--permission-mode")
-    assert cmd[idx + 1] == "normal"
+    assert cmd[idx + 1] == "auto"
 
 
 def test_call_llm_permission_mode_defaults_dangerous():
@@ -310,8 +310,8 @@ def test_call_llm_permission_mode_defaults_dangerous():
     assert cmd[idx + 1] == "dangerous"
 
 
-def test_call_llm_safe_passes_permission_mode():
-    """call_llm_safe should pass permission_mode through to call_llm."""
+def test_call_llm_safe_translates_permission_mode_normal_to_auto():
+    """call_llm_safe should preserve Devin's provider-specific translation."""
     mock_result = MagicMock()
     mock_result.returncode = 0
     mock_result.stdout = "Result"
@@ -324,7 +324,7 @@ def test_call_llm_safe_passes_permission_mode():
 
     cmd = mock_run.call_args[0][0]
     idx = cmd.index("--permission-mode")
-    assert cmd[idx + 1] == "normal"
+    assert cmd[idx + 1] == "auto"
 
 
 def test_call_llm_config_path():

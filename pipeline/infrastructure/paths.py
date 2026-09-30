@@ -49,21 +49,23 @@ class Paths:
     def from_hunter_dir(
         hunter_dir: Path,
         *,
+        scraper_dir: Path | None = None,
         base_resume_filename: str = "base-resume.md",
         linkedin_experience_filename: str = "full-experience.md",
     ) -> Paths:
-        """Construct Paths from a given hunter root directory.
+        """Construct Paths from a hunter root and optional scraper root.
 
         Profile filenames come from config.profile (PipelineConfig);
         callers that have loaded config should pass them through. The
         defaults match the generic names used by tests and fresh clones.
         """
-        scraper_dir = Path(
-            os.environ.get(
-                "JOB_SCRAPER_DIR",
-                os.path.expanduser("/path/to/job-scraper"),
+        if scraper_dir is None:
+            scraper_dir = Path(
+                os.environ.get(
+                    "JOB_SCRAPER_DIR",
+                    os.path.expanduser("/path/to/job-scraper"),
+                )
             )
-        )
         data_dir = hunter_dir / "data"
         devin_dir = hunter_dir / ".devin"
         stages = hunter_dir / "stages"
