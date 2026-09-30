@@ -37,5 +37,5 @@
     "base_resume_file": "base-resume.md",
     "linkedin_experience_file": "full-experience.md"
   },
-  "location_policy": "The candidate is based in the New York metro area. Do not flag location as a GAP for jobs in NYC or commutable suburbs. Do not flag travel below 25% as a GAP. Edit this to match your situation."
+  "location_policy": "The candidate is based in the San Francisco Bay Area. Do not flag location as a GAP for jobs in the Bay Area or commutable suburbs. Do not flag travel below 25% as a GAP. Edit this to match your situation."
 }
