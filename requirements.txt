@@ -5,7 +5,7 @@
 
 # ─── Pipeline engine ──────────────────────────────────────────────────────
 langgraph>=1.2.11,<2          # stateful graph engine (ADR-0005)
-langgraph-checkpoint-sqlite>=3.1.1,<4  # SqliteSaver checkpointer (ADR-0005)
+langgraph-checkpoint-sqlite>=3.1.2,<4  # SqliteSaver checkpointer (ADR-0005)
 # langgraph pulls transitively:
 #   langchain-core>=1.4.7,<2
 #   langgraph-checkpoint>=4.1.0,<5
