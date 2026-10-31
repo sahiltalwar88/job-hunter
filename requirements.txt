@@ -18,7 +18,7 @@ langgraph-checkpoint-sqlite>=3.1.1,<4  # SqliteSaver checkpointer (ADR-0005)
 pydantic>=2.7.4,<3            # validation at the LLM-JSON boundary (ADR-0006)
 
 # ─── Structured logging ────────────────────────────────────────────────────
-structlog>=24.1,<25         # structured logging with bind() for slug/node correlation (ADR-0014)
+structlog>=26.1.0,<27         # structured logging with bind() for slug/node correlation (ADR-0014)
 
 # ─── Existing implicit deps (made explicit) ────────────────────────────────
 # These were already used by the pipeline but not declared anywhere.
